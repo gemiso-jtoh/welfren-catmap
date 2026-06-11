@@ -2615,34 +2615,46 @@ function renderTrendChart() {
       const yAxis = chart.scales.y;
       let lastMonth = null;
       allLabels.forEach((lbl, i) => {
-        const m = lbl.match(/^(\d+)월/);
-        if (!m) return;
-        const mo = m[1];
+        const mo = lbl.split('월')[0];
+        if (!mo || isNaN(Number(mo))) return;
         if (mo !== lastMonth) {
           if (lastMonth !== null && i > 0) {
-            const x = xAxis.getPixelForValue(i - 0.5);
+            // 이전 주차 끝과 현재 주차 시작 사이 중간에 선 그리기
+            const x0 = xAxis.getPixelForTick ? xAxis.getPixelForTick(i-1) : xAxis.getPixelForValue(i-1);
+            const x1 = xAxis.getPixelForTick ? xAxis.getPixelForTick(i) : xAxis.getPixelForValue(i);
+            const xMid = (x0 + x1) / 2;
             ctx3.save();
             ctx3.beginPath();
-            ctx3.strokeStyle = 'rgba(100,100,100,0.25)';
+            ctx3.strokeStyle = 'rgba(80,80,80,0.3)';
             ctx3.lineWidth = 1.5;
-            ctx3.setLineDash([4, 3]);
-            ctx3.moveTo(x, yAxis.top);
-            ctx3.lineTo(x, yAxis.bottom);
+            ctx3.setLineDash([5, 4]);
+            ctx3.moveTo(xMid, yAxis.top);
+            ctx3.lineTo(xMid, yAxis.bottom);
             ctx3.stroke();
-            ctx3.restore();
-          }
-          // 월 레이블
-          if (i < allLabels.length) {
-            const x = xAxis.getPixelForValue(i);
-            ctx3.save();
+            // 월 레이블
+            ctx3.setLineDash([]);
             ctx3.font = 'bold 11px sans-serif';
-            ctx3.fillStyle = 'rgba(100,100,100,0.6)';
-            ctx3.fillText(mo + '월', x, yAxis.top - 6);
+            ctx3.fillStyle = 'rgba(80,80,80,0.55)';
+            ctx3.textAlign = 'center';
+            ctx3.fillText(mo + '월', xMid, yAxis.top - 6);
             ctx3.restore();
           }
           lastMonth = mo;
         }
       });
+      // 첫 번째 월 레이블
+      if (allLabels.length > 0) {
+        const firstMo = allLabels[0].split('월')[0];
+        if (firstMo && !isNaN(Number(firstMo))) {
+          const x = xAxis.getPixelForTick ? xAxis.getPixelForTick(0) : xAxis.getPixelForValue(0);
+          ctx3.save();
+          ctx3.font = 'bold 11px sans-serif';
+          ctx3.fillStyle = 'rgba(80,80,80,0.55)';
+          ctx3.textAlign = 'center';
+          ctx3.fillText(firstMo + '월', x, yAxis.top - 6);
+          ctx3.restore();
+        }
+      }
     }
   };
 
@@ -2828,30 +2840,57 @@ function exportOverviewExcel() {
   const d = _analyzedCurrent;
   if (!d) return;
 
-  // 담당자×주차 매출표
-  const personRows = [['#','담당자',...d.weeks,'합계','비중%']];
+  const N = v => typeof v==='number' ? v : (parseFloat(v)||0); // 숫자 보정
+  // 천단위 포맷은 XLSX cell format으로
+  function numCell(v) { return { v: N(v), t:'n', z:'#,##0' }; }
+  function pctCell(v) { return { v: String(v), t:'s' }; }
+
+  // ── 시트1: 담당자×주차 ──
   const gt = d.persons.reduce((s,p)=>s+d.weeks.reduce((ss,w)=>ss+(d.byPersonWeek[p]?.[w]||0),0),0);
+  const ws1data = [['#','담당자',...d.weeks,'합계','비중%']];
   d.persons.forEach((p,i) => {
     const rt = d.weeks.reduce((s,w)=>s+(d.byPersonWeek[p]?.[w]||0),0);
-    const row = [i+1, p, ...d.weeks.map(w=>d.byPersonWeek[p]?.[w]||0), rt, gt?(rt/gt*100).toFixed(1)+'%':''];
-    personRows.push(row);
+    ws1data.push([i+1, p, ...d.weeks.map(w=>N(d.byPersonWeek[p]?.[w]||0)), N(rt), gt?(rt/gt*100).toFixed(1)+'%':'']);
   });
-  const ws1 = XLSX.utils.aoa_to_sheet(personRows);
+  // 합계행
+  const wkTotals = d.weeks.map(w=>d.persons.reduce((s,p)=>s+(d.byPersonWeek[p]?.[w]||0),0));
+  ws1data.push(['','합계',...wkTotals, N(gt), '100%']);
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
+  // 숫자 컬럼에 천단위 서식
+  const R1 = ws1data.length, C1 = ws1data[0].length;
+  for (let r=1; r<R1; r++) for (let c=2; c<C1-1; c++) {
+    const addr = XLSX.utils.encode_cell({r,c});
+    if (ws1[addr] && typeof ws1[addr].v==='number') ws1[addr].z='#,##0';
+  }
   XLSX.utils.book_append_sheet(wb, ws1, '담당자별매출');
 
-  // 제품 TOP10
-  const prodRows = [['순위','제품명','금액','비중%','배식학교수']];
-  d.top10.forEach((p,i) => prodRows.push([i+1, p.name, p.amt, d.total?(p.amt/d.total*100).toFixed(1)+'%':'', p.schoolCount||0]));
-  const ws2 = XLSX.utils.aoa_to_sheet(prodRows);
+  // ── 시트2: 제품 TOP10+기타 ──
+  const ws2data = [['순위','제품명','금액','비중%','배식학교수']];
+  d.top10.forEach((p,i) => ws2data.push([i+1, p.name, N(p.amt), d.total?(p.amt/d.total*100).toFixed(1)+'%':'', p.schoolCount||0]));
+  if (d.top10Other && d.top10Other.count>0) {
+    ws2data.push(['기타', `기타 ${d.top10Other.count}개 제품`, N(d.top10Other.total), d.total?(d.top10Other.total/d.total*100).toFixed(1)+'%':'', '']);
+  }
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2data);
+  for (let r=1; r<ws2data.length; r++) {
+    const addr = XLSX.utils.encode_cell({r,c:2});
+    if (ws2[addr]) ws2[addr].z='#,##0';
+  }
   XLSX.utils.book_append_sheet(wb, ws2, '제품TOP10');
 
-  // 학교 TOP10
-  const schoolRows = [['순위','학교명','담당자','권역','금액','비중%']];
+  // ── 시트3: 학교 TOP10+기타 ──
+  const ws3data = [['순위','학교명','담당자','권역','금액','비중%']];
   d.topSchools.forEach((s,i) => {
     const topP = s.persons?Object.entries(s.persons).sort((a,b)=>b[1]-a[1])[0]:null;
-    schoolRows.push([i+1, s.name, topP?topP[0]:'', s.kwon||'', s.total, d.total?(s.total/d.total*100).toFixed(1)+'%':'']);
+    ws3data.push([i+1, s.name, topP?topP[0]:'', s.kwon||'', N(s.total), d.total?(s.total/d.total*100).toFixed(1)+'%':'']);
   });
-  const ws3 = XLSX.utils.aoa_to_sheet(schoolRows);
+  if (d.topSchoolsOther && d.topSchoolsOther.count>0) {
+    ws3data.push(['기타', `기타 ${d.topSchoolsOther.count}개교`, '', '', N(d.topSchoolsOther.total), d.total?(d.topSchoolsOther.total/d.total*100).toFixed(1)+'%':'']);
+  }
+  const ws3 = XLSX.utils.aoa_to_sheet(ws3data);
+  for (let r=1; r<ws3data.length; r++) {
+    const addr = XLSX.utils.encode_cell({r,c:4});
+    if (ws3[addr]) ws3[addr].z='#,##0';
+  }
   XLSX.utils.book_append_sheet(wb, ws3, '학교TOP10');
 
   XLSX.writeFile(wb, '웰프렌_총괄_' + (d.period||'').replace('~','to') + '.xlsx');
@@ -2862,16 +2901,25 @@ function exportCategoryExcel() {
   const d = _analyzedCurrent;
   if (!d) return;
   const wb = XLSX.utils.book_new();
+  const N = v => typeof v==='number'?v:(parseFloat(v)||0);
 
   const cats = Object.keys(d.byCatPerson).filter(c=>d.byCatPerson[c]);
   const persons = [...new Set(cats.flatMap(c=>Object.keys(d.byCatPerson[c])))].sort();
-  const rows = [['카테고리', ...persons, '합계', '배식학교수']];
+  const rows = [['카테고리', ...persons, '합계', '점유율%', '배식학교수']];
   cats.forEach(cat => {
     const total = Object.values(d.byCatPerson[cat]).reduce((s,v)=>s+v,0);
     const schoolCnt = d.byCat[cat]?.schools?.size || 0;
-    rows.push([cat, ...persons.map(p=>d.byCatPerson[cat][p]||0), total, schoolCnt]);
+    const pct = d.total?(total/d.total*100).toFixed(1)+'%':'';
+    rows.push([cat, ...persons.map(p=>N(d.byCatPerson[cat][p]||0)), N(total), pct, schoolCnt]);
   });
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  // 숫자 서식
+  for (let r=1; r<rows.length; r++) {
+    for (let c=1; c<=persons.length+1; c++) {
+      const addr = XLSX.utils.encode_cell({r,c});
+      if (ws[addr] && typeof ws[addr].v==='number') ws[addr].z='#,##0';
+    }
+  }
   XLSX.utils.book_append_sheet(wb, ws, '카테고리별매출');
   XLSX.writeFile(wb, '웰프렌_카테고리_' + (d.period||'').replace('~','to') + '.xlsx');
   showToast('✅ 카테고리 엑셀 다운로드');
@@ -2879,17 +2927,45 @@ function exportCategoryExcel() {
 
 function exportDeepExcel() {
   if (!_deepRows || !_deepRows.length) return;
-  const rows = [['지역','담당자','권역','매출','침투율%','초침투율%','중침투율%','고침투율%','학생1인당','학생수']];
+  const wb = XLSX.utils.book_new();
+  const N = v => typeof v==='number'?v:(parseFloat(v)||0);
+
+  // 병합 헤더: 침투율 3셀 병합
+  // aoa_to_sheet로 만들고 merge 직접 설정
+  const hdr1 = ['지역','담당자','권역','매출','침투율','','','학생1인당','학생수'];
+  const hdr2 = ['','','','','초(%)','중(%)','고(%)','',''];
+  const dataRows = [];
   _deepRows.forEach(r => {
-    rows.push([
+    dataRows.push([
       r.dist, r.info.person, r.info.kwon,
-      r.deep.total, r.penetration.toFixed(1)+'%',
-      r.typeRows[0]?.pct+'%'||'', r.typeRows[1]?.pct+'%'||'', r.typeRows[2]?.pct+'%'||'',
-      r.perStudent, r.info.students
+      N(r.deep.total),
+      r.typeRows[0]?parseFloat(r.typeRows[0].pct)||0:'',
+      r.typeRows[1]?parseFloat(r.typeRows[1].pct)||0:'',
+      r.typeRows[2]?parseFloat(r.typeRows[2].pct)||0:'',
+      N(r.perStudent),
+      N(r.info.students)
     ]);
   });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  const wsData = [hdr1, hdr2, ...dataRows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // 침투율 병합 (row0, col4~6)
+  if (!ws['!merges']) ws['!merges'] = [];
+  ws['!merges'].push({ s:{r:0,c:4}, e:{r:0,c:6} });
+
+  // 숫자 서식
+  for (let r=2; r<wsData.length; r++) {
+    [3,7,8].forEach(c => {
+      const addr = XLSX.utils.encode_cell({r,c});
+      if (ws[addr] && typeof ws[addr].v==='number') ws[addr].z='#,##0';
+    });
+    [4,5,6].forEach(c => {
+      const addr = XLSX.utils.encode_cell({r,c});
+      if (ws[addr] && typeof ws[addr].v==='number') ws[addr].z='0.0"%"';
+    });
+  }
+
   XLSX.utils.book_append_sheet(wb, ws, '지역별심화분석');
   XLSX.writeFile(wb, '웰프렌_지역별심화분석.xlsx');
   showToast('✅ 지역별 심화분석 엑셀 다운로드');
@@ -2897,12 +2973,19 @@ function exportDeepExcel() {
 
 function exportCompareExcel() {
   if (!window._compareData) return;
+  const N = v => typeof v==='number'?v:(parseFloat(v)||0);
   const rows = [['#','담당자','A기간 매출','B기간 매출','증감','증감률%']];
   window._compareData.forEach((r,i) => {
-    rows.push([i+1, r.p, r.av, r.bv, r.diff, r.pct.toFixed(1)+'%']);
+    rows.push([i+1, r.p, N(r.av), N(r.bv), N(r.diff), r.pct.toFixed(1)+'%']);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
+  [2,3,4].forEach(c => {
+    for (let r=1; r<rows.length; r++) {
+      const addr = XLSX.utils.encode_cell({r,c});
+      if (ws[addr] && typeof ws[addr].v==='number') ws[addr].z='#,##0';
+    }
+  });
   XLSX.utils.book_append_sheet(wb, ws, '기간비교');
   XLSX.writeFile(wb, '웰프렌_기간비교.xlsx');
   showToast('✅ 기간비교 엑셀 다운로드');
