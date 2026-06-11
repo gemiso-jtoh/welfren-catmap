@@ -601,34 +601,37 @@ initMaps();
 // GitHub 카테고리 맵 자동 로드
 // ───────────────────────────────────────────────
 const GITHUB_CATMAP_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/welfren_catmap.json';
+const GITHUB_CATMAP_URL2 = 'https://raw.githubusercontent.com/gemiso-jtoh/welfren-catmap/refs/heads/main/welfren_catmap.json';
 const GITHUB_HOLIDAYS_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/holidays.json';
+const GITHUB_HOLIDAYS_URL2 = 'https://raw.githubusercontent.com/gemiso-jtoh/welfren-catmap/refs/heads/main/holidays.json';
 
 
 async function fetchLatestHolidays() {
-  try {
-    const res = await fetch(GITHUB_HOLIDAYS_URL + '?t=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) throw new Error('fetch 실패');
-    const remote = await res.json();
-    if (Array.isArray(remote) && remote.length > 0) {
-      _holidays = new Set(remote);
-      console.log('[HOLIDAYS] GitHub에서 ' + remote.length + '개 로드');
-    }
-    return true;
-  } catch(e) {
-    console.warn('[HOLIDAYS] GitHub 로드 실패, 내장 데이터 사용:', e.message);
-    return false;
+  for (const url of [GITHUB_HOLIDAYS_URL, GITHUB_HOLIDAYS_URL2]) {
+    try {
+      const res = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) continue;
+      const remote = await res.json();
+      if (Array.isArray(remote) && remote.length > 0) {
+        _holidays = new Set(remote);
+        console.log('[HOLIDAYS] GitHub에서 ' + remote.length + '개 로드');
+      }
+      return true;
+    } catch(e) { continue; }
   }
+  console.warn('[HOLIDAYS] GitHub 로드 실패, 내장 데이터 사용');
+  return false;
 }
 
 async function fetchLatestCatMap() {
-  for (const url of [GITHUB_CATMAP_URL]) {
+  for (const url of [GITHUB_CATMAP_URL, GITHUB_CATMAP_URL2]) {
     try {
       const res = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) continue;
       const remote = await res.json();
       const added = Object.keys(remote).filter(k => !catMap[k]).length;
       Object.assign(catMap, remote);
-      console.log('[CATMAP] GitHub에서 ' + Object.keys(remote).length + '개 로드, ' + added + '개 신규 반영');
+      console.log('[CATMAP] 로드 완료:', Object.keys(remote).length + '개, 신규 ' + added + '개, URL: ' + url);
       return true;
     } catch(e) { continue; }
   }
