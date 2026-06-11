@@ -2423,6 +2423,20 @@ function getTrendLabel(dateStr) {
   }
 }
 
+function getTrendLabelShort(dateStr) {
+  // 주간용 짧은 레이블: "3W" 형태
+  if (_trendUnit !== 'weekly') return getTrendLabel(dateStr);
+  const lbl = getWeekLabel(dateStr); // "3월 2주차"
+  const m = lbl.match(/(\d+)월 (\d+)주차/);
+  return m ? m[2]+'W' : lbl;
+}
+
+function getTrendLabelMonth(dateStr) {
+  // 주간용 월 추출: "2025/03" 형태
+  if (!dateStr) return '';
+  return dateStr.slice(0,7).replace('-','/');
+}
+
 function renderTrendChart() {
   if (!_allRows.length) return;
   const f = _trendFilters;
@@ -2456,7 +2470,8 @@ function renderTrendChart() {
     : new Set([..._cbChecked].map(cb=>cb.value));
 
   // X축 레이블 (선택된 월만)
-  const allLabels = [...new Set(
+  // 전체 주차 레이블 (정렬용 원본 "3월 2주차" 형태)
+  const allLabelsRaw = [...new Set(
     _allRows
       .filter(r=>{
         if (!['지방','수도권'].includes((r['구분']||'').trim())) return false;
@@ -2469,10 +2484,32 @@ function renderTrendChart() {
       .filter(Boolean)
   )].sort((a,b)=>{
     if (_trendUnit==='monthly') return a<b?-1:1;
-    const [am,aw]=a.match(/(\d+)월 (\d+)주차/).slice(1).map(Number);
-    const [bm,bw]=b.match(/(\d+)월 (\d+)주차/).slice(1).map(Number);
-    return am!==bm?am-bm:aw-bw;
+    const ma = a.match(/(\d+)월 (\d+)주차/);
+    const mb = b.match(/(\d+)월 (\d+)주차/);
+    if (!ma||!mb) return a<b?-1:1;
+    return ma[1]!==mb[1] ? Number(ma[1])-Number(mb[1]) : Number(ma[2])-Number(mb[2]);
   });
+
+  // X축 표시용 (주간: "2W", 월간: "2025/03")
+  const allLabels = (_trendUnit === 'weekly')
+    ? allLabelsRaw.map(lbl => { const m=lbl.match(/(\d+)주차/); return m?m[1]+'W':lbl; })
+    : allLabelsRaw;
+
+  // 월별 그룹 (주간 2단 X축용)
+  const monthGroups = [];
+  if (_trendUnit === 'weekly') {
+    let lastMo = null, startIdx = 0;
+    allLabelsRaw.forEach((lbl, i) => {
+      const m = lbl.match(/(\d+)월/);
+      if (!m) return;
+      const mo = m[1]+'월';
+      if (mo !== lastMo) {
+        if (lastMo !== null) monthGroups.push({month: lastMo, startIdx, endIdx: i-1});
+        startIdx = i; lastMo = mo;
+      }
+      if (i === allLabelsRaw.length-1) monthGroups.push({month: lastMo, startIdx, endIdx: i});
+    });
+  }
 
   // 기준에 따른 라인 생성
   function getBasisItems() {
@@ -2561,7 +2598,8 @@ function renderTrendChart() {
       const lbl = d ? getTrendLabel(d) : null;
       if (lbl) byLabel[lbl] = (byLabel[lbl]||0) + (parseFloat(r['금액'])||0);
     });
-    const data = allLabels.map(lbl => Math.round(byLabel[lbl]||0));
+    // allLabelsRaw 기준으로 집계 후 allLabels(짧은 형태)로 매핑
+    const data = allLabelsRaw.map(rawLbl => Math.round(byLabel[rawLbl]||0));
     const POINT_STYLES = ['circle','triangle','rect','rectRot','star','cross'];
     const pStyle = POINT_STYLES[lineIdx % POINT_STYLES.length];
     return {
@@ -2609,52 +2647,39 @@ function renderTrendChart() {
   const monthDividerPlugin = {
     id: 'monthDivider',
     afterDraw(chart) {
-      if (_trendUnit !== 'weekly') return;
+      if (_trendUnit !== 'weekly' || !monthGroups.length) return;
       const ctx3 = chart.ctx;
       const xAxis = chart.scales.x;
       const yAxis = chart.scales.y;
-      let lastMonth = null;
-      allLabels.forEach((lbl, i) => {
-        const mo = lbl.split('월')[0];
-        if (!mo || isNaN(Number(mo))) return;
-        if (mo !== lastMonth) {
-          if (lastMonth !== null && i > 0) {
-            // 이전 주차 끝과 현재 주차 시작 사이 중간에 선 그리기
-            const x0 = xAxis.getPixelForTick ? xAxis.getPixelForTick(i-1) : xAxis.getPixelForValue(i-1);
-            const x1 = xAxis.getPixelForTick ? xAxis.getPixelForTick(i) : xAxis.getPixelForValue(i);
-            const xMid = (x0 + x1) / 2;
-            ctx3.save();
-            ctx3.beginPath();
-            ctx3.strokeStyle = 'rgba(80,80,80,0.3)';
-            ctx3.lineWidth = 1.5;
-            ctx3.setLineDash([5, 4]);
-            ctx3.moveTo(xMid, yAxis.top);
-            ctx3.lineTo(xMid, yAxis.bottom);
-            ctx3.stroke();
-            // 월 레이블
-            ctx3.setLineDash([]);
-            ctx3.font = 'bold 11px sans-serif';
-            ctx3.fillStyle = 'rgba(80,80,80,0.55)';
-            ctx3.textAlign = 'center';
-            ctx3.fillText(mo + '월', xMid, yAxis.top - 6);
-            ctx3.restore();
-          }
-          lastMonth = mo;
-        }
-      });
-      // 첫 번째 월 레이블
-      if (allLabels.length > 0) {
-        const firstMo = allLabels[0].split('월')[0];
-        if (firstMo && !isNaN(Number(firstMo))) {
-          const x = xAxis.getPixelForTick ? xAxis.getPixelForTick(0) : xAxis.getPixelForValue(0);
+      const bottom = yAxis.bottom;
+
+      monthGroups.forEach((grp, gi) => {
+        const x0 = xAxis.getPixelForTick(grp.startIdx);
+        const x1 = xAxis.getPixelForTick(grp.endIdx);
+        const xMid = (x0 + x1) / 2;
+
+        // 월 구분 수직선 (첫 번째 제외)
+        if (gi > 0) {
+          const xLine = (xAxis.getPixelForTick(grp.startIdx - 1) + x0) / 2;
           ctx3.save();
-          ctx3.font = 'bold 11px sans-serif';
-          ctx3.fillStyle = 'rgba(80,80,80,0.55)';
-          ctx3.textAlign = 'center';
-          ctx3.fillText(firstMo + '월', x, yAxis.top - 6);
+          ctx3.beginPath();
+          ctx3.strokeStyle = 'rgba(80,80,80,0.25)';
+          ctx3.lineWidth = 1.5;
+          ctx3.setLineDash([5, 4]);
+          ctx3.moveTo(xLine, yAxis.top);
+          ctx3.lineTo(xLine, bottom + 38);
+          ctx3.stroke();
           ctx3.restore();
         }
-      }
+
+        // 월 레이블 (X축 아래 두 번째 줄)
+        ctx3.save();
+        ctx3.font = 'bold 12px sans-serif';
+        ctx3.fillStyle = '#374151';
+        ctx3.textAlign = 'center';
+        ctx3.fillText(grp.month, xMid, bottom + 38);
+        ctx3.restore();
+      });
     }
   };
 
@@ -2665,7 +2690,7 @@ function renderTrendChart() {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode:'index', intersect:false },
-      layout: { padding: { top: 36, right: 60, left: 10, bottom: 10 } },
+      layout: { padding: { top: 36, right: 60, left: 10, bottom: 45 } },
       plugins: {
         legend: { display: false },
         tooltip: {
