@@ -2799,8 +2799,7 @@ function tableToExcel(tableId, sheetName, filename) {
   if (!table) { showToast('표를 찾을 수 없습니다'); return; }
 
   const wb = XLSX.utils.book_new();
-  // 셀 분리: 줄바꿈(
-) 포함 셀 → 첫번째 값만, 나머지는 다음 컬럼
+  // 셀 분리: 줄바꿈 포함 셀 → 컬럼으로 분리
   const rows = [];
   table.querySelectorAll('tr').forEach(tr => {
     const row = [];
@@ -2831,7 +2830,6 @@ function exportOverviewExcel() {
 
   // 담당자×주차 매출표
   const personRows = [['#','담당자',...d.weeks,'합계','비중%']];
-  const grandTotal = d.weeks.reduce((s,w)=>s+d.weeks.reduce((ss,ww)=>ss+(d.byPersonWeek[d.persons[0]]?.[ww]||0),0),0);
   const gt = d.persons.reduce((s,p)=>s+d.weeks.reduce((ss,w)=>ss+(d.byPersonWeek[p]?.[w]||0),0),0);
   d.persons.forEach((p,i) => {
     const rt = d.weeks.reduce((s,w)=>s+(d.byPersonWeek[p]?.[w]||0),0);
