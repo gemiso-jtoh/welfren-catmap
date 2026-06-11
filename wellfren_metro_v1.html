@@ -601,6 +601,8 @@ initMaps();
 // GitHub 카테고리 맵 자동 로드
 // ───────────────────────────────────────────────
 const GITHUB_CATMAP_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/welfren_catmap.json';
+const GITHUB_REGION_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/welfren_region.json';
+const GITHUB_REGION_URL2 = 'https://raw.githubusercontent.com/gemiso-jtoh/welfren-catmap/refs/heads/main/welfren_region.json';
 const GITHUB_CATMAP_URL2 = 'https://raw.githubusercontent.com/gemiso-jtoh/welfren-catmap/refs/heads/main/welfren_catmap.json';
 const GITHUB_HOLIDAYS_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/holidays.json';
 const GITHUB_HOLIDAYS_URL2 = 'https://raw.githubusercontent.com/gemiso-jtoh/welfren-catmap/refs/heads/main/holidays.json';
@@ -620,6 +622,22 @@ async function fetchLatestHolidays() {
     } catch(e) { continue; }
   }
   console.warn('[HOLIDAYS] GitHub 로드 실패, 내장 데이터 사용');
+  return false;
+}
+
+
+async function fetchLatestRegion() {
+  for (const url of [GITHUB_REGION_URL, GITHUB_REGION_URL2]) {
+    try {
+      const res = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) continue;
+      const remote = await res.json();
+      Object.assign(regionMap, remote);
+      console.log('[REGION] GitHub에서 ' + Object.keys(remote).length + '개 로드');
+      return true;
+    } catch(e) { continue; }
+  }
+  console.warn('[REGION] GitHub 로드 실패, 내장 데이터 사용');
   return false;
 }
 
@@ -788,7 +806,7 @@ async function startAnalysis() {
   showToast('⏳ 분석 중...');
   try {
     // GitHub에서 최신 카테고리 + 공휴일 로드
-    await Promise.all([fetchLatestCatMap(), fetchLatestHolidays()]);
+    await Promise.all([fetchLatestCatMap(), fetchLatestHolidays(), fetchLatestRegion()]);
 
     _allRows = await readErpXlsx(files.erp);
 
