@@ -352,7 +352,7 @@ tbody tr:last-child td { border-bottom: none; }
       </div>
     </div>
 
-    <div class="sec-title">담당자별 × 주차별 매출</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">담당자별 × 주차별 매출<button onclick="exportOverviewExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div>
     <div class="table-outer"><div class="table-wrap"><table id="person-table"><thead id="person-thead"></thead><tbody id="person-tbody"></tbody></table></div></div>
 
     <div class="sec-title">매출 TOP 10 제품</div>
@@ -370,7 +370,7 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="sec-title">지역별 학교 매출 TOP 5</div>
     <div class="school-top5-wrap" id="school-top5"></div>
 
-    <div class="sec-title">지역별 심화 분석</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">지역별 심화 분석<button onclick="exportDeepExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div>
     <div id="deep-analysis-wrap"></div>
 
     <div class="sec-title">담당자별 학교구분 현황</div>
@@ -388,7 +388,7 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="sec-title">카테고리별 매출</div>
     <div class="cat-grid" id="cat-cards"></div>
 
-    <div class="sec-title">카테고리 × 담당자 매출</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">카테고리 × 담당자 매출<button onclick="exportCategoryExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div>
     <div class="table-outer"><div class="table-wrap"><table id="cat-person-table"><thead id="cat-person-thead"></thead><tbody id="cat-person-tbody"></tbody></table></div></div>
 
     <!-- 카테고리 편집기 -->
@@ -451,7 +451,7 @@ tbody tr:last-child td { border-bottom: none; }
       </div>
       <div class="sec-title">주요 지표 비교</div>
       <div class="compare-grid" id="compare-cards"></div>
-      <div class="sec-title">담당자별 비교</div>
+      <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">담당자별 비교<button onclick="exportCompareExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div>
       <div class="table-outer"><div class="table-wrap"><table id="compare-table"><thead id="compare-thead"></thead><tbody id="compare-tbody"></tbody></table></div></div>
     </div>
   </div>
@@ -483,6 +483,17 @@ tbody tr:last-child td { border-bottom: none; }
         <button id="trend-monthly" onclick="setTrendUnit('monthly')" style="font-size:12px;padding:4px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-family:'Pretendard',sans-serif;font-weight:600">월간</button>
       </div>
     </div>
+    <!-- 기준 선택 -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:12px;font-weight:700;color:var(--text2)">기준 라인:</span>
+      <div style="display:flex;gap:4px" id="trend-basis-btns">
+        <button onclick="setTrendBasis('person')" id="tbtn-person" style="font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Pretendard',sans-serif;font-weight:600">담당자</button>
+        <button onclick="setTrendBasis('product')" id="tbtn-product" style="font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif">제품</button>
+        <button onclick="setTrendBasis('region')" id="tbtn-region" style="font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif">지역</button>
+        <button onclick="setTrendBasis('area')" id="tbtn-area" style="font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:'Pretendard',sans-serif">권역</button>
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
         <div style="font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">담당자 <span style="color:var(--text3);font-size:10px;font-weight:400">(기준 라인)</span></div>
@@ -523,8 +534,10 @@ tbody tr:last-child td { border-bottom: none; }
 
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px">
       <div id="trend-legend" style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;min-height:20px"></div>
-      <div style="position:relative;width:100%;height:360px">
-        <canvas id="trendChart" role="img" aria-label="매출 추이 라인 차트">매출 추이 데이터</canvas>
+      <div id="trend-chart-outer" style="overflow-x:auto;width:100%">
+        <div id="trend-chart-inner" style="position:relative;min-width:100%;height:380px">
+          <canvas id="trendChart" role="img" aria-label="매출 추이 라인 차트">매출 추이 데이터</canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -1296,7 +1309,7 @@ function renderPersonTable(d) {
     const rt = weeks.reduce((s,w)=>s+(byPersonWeek[p][w]||0),0);
     return `<tr>
       <td style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);padding:9px 6px">${rankMap[p]}</td>
-      <td style="padding:9px 10px;white-space:pre-line;line-height:1.3">${p.replace('(수도권)','\n(수도권)').replace('(지방)','\n(지방)').replace('(세종)','\n(세종)')}</td>
+      <td style="padding:9px 10px;white-space:nowrap;line-height:1.3">${p.replace(/\((수도권|지방|세종)\)/g, '<span style="font-size:70%;color:#9ca3af;margin-left:2px">($1)</span>')}</td>
       ${weeks.map(w=>`<td class="week-cell" style="text-align:center">${byPersonWeek[p][w]?fmt(byPersonWeek[p][w])+'원':'<span style="color:var(--text3)">—</span>'}</td>`).join('')}
       <td class="week-cell" style="font-weight:700;text-align:center">${fmt(rt)}원</td>
     </tr>`;
@@ -1617,7 +1630,7 @@ function renderCategory(d) {
   const persons = [...new Set(cats.flatMap(c=>Object.keys(d.byCatPerson[c])))].sort();
 
   document.getElementById('cat-person-thead').innerHTML =
-    `<tr><th style="text-align:left;min-width:100px">카테고리</th>${persons.map(p=>`<th style="white-space:pre-line">${p.replace('(수도권)','\n(수도권)').replace('(지방)','\n(지방)').replace('(세종)','\n(세종)')}</th>`).join('')}<th>합계</th></tr>`;
+    `<tr><th style="text-align:left;min-width:100px">카테고리</th>${persons.map(p=>`<th style="white-space:nowrap">${p.replace(/\((수도권|지방|세종)\)/g,'<span style="font-size:70%;color:#9ca3af;margin-left:2px">($1)</span>')}</th>`).join('')}<th>합계</th></tr>`;
 
   document.getElementById('cat-person-tbody').innerHTML = cats.map(cat=>{
     const total = Object.values(d.byCatPerson[cat]).reduce((s,v)=>s+v,0);
@@ -2280,6 +2293,7 @@ const TREND_COLORS = ['#378ADD','#639922','#D85A30','#7F77DD','#1D9E75','#BA7517
 let _trendChart = null;
 let _trendUnit = 'monthly'; // 'weekly' | 'monthly'
 let _trendFilters = { person:[], product:[], region:[], area:[] };
+let _trendBasis = 'person'; // 기준 라인: person|product|region|area
 
 const TREND_TAG_COLORS = {
   person: { bg:'rgba(55,138,221,0.12)', border:'#85B7EB', text:'#0C447C' },
@@ -2344,6 +2358,22 @@ function initTrendTab() {
 
 function trendSelectAllMonths(checked) {
   document.querySelectorAll('.trend-month-cb').forEach(cb => cb.checked = checked);
+  renderTrendChart();
+}
+
+
+function setTrendBasis(basis) {
+  _trendBasis = basis;
+  // 버튼 스타일 업데이트
+  ['person','product','region','area'].forEach(b => {
+    const btn = document.getElementById('tbtn-' + b);
+    if (!btn) return;
+    if (b === basis) {
+      btn.style.cssText = 'font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:Pretendard,sans-serif;font-weight:600';
+    } else {
+      btn.style.cssText = 'font-size:12px;padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif';
+    }
+  });
   renderTrendChart();
 }
 
@@ -2444,10 +2474,84 @@ function renderTrendChart() {
     return am!==bm?am-bm:aw-bw;
   });
 
-  // 라인 정의: 담당자 있으면 담당자별, 없으면 전체
-  const lines = f.person.length > 0
-    ? f.person.map((p,i) => ({ label:p, rows:getRows(p), color:TREND_COLORS[i%TREND_COLORS.length] }))
-    : [{ label:'전체 매출', rows:getRows(null), color:TREND_COLORS[0] }];
+  // 기준에 따른 라인 생성
+  function getBasisItems() {
+    switch(_trendBasis) {
+      case 'product': {
+        const prods = f.product.length > 0 ? f.product :
+          [...new Set(_allRows
+            .filter(r => {
+              if (!['지방','수도권'].includes((r['구분']||'').trim())) return false;
+              if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+              return true;
+            })
+            .map(r => normProduct(r['제품명']||'').replace(/^\[[^\]]+\]\s*/,''))
+            .filter(Boolean)
+          )].sort().slice(0,8);
+        return prods.map((p,i) => ({
+          label: p, color: TREND_COLORS[i % TREND_COLORS.length],
+          rows: _allRows.filter(r => {
+            const amt = parseFloat(r['금액'])||0;
+            if (amt<=0 || !['지방','수도권'].includes((r['구분']||'').trim())) return false;
+            const rd = parseDate(r['급식일']);
+            if (rd && checkedMonths && !checkedMonths.has(rd.slice(0,7))) return false;
+            if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+            const pName = normProduct(r['제품명']||'').replace(/^\[[^\]]+\]\s*/,'');
+            return pName === p;
+          })
+        }));
+      }
+      case 'region': {
+        const regs = f.region.length > 0 ? f.region :
+          [...new Set(_allRows
+            .filter(r => {
+              if (!['지방','수도권'].includes((r['구분']||'').trim())) return false;
+              if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+              return true;
+            })
+            .map(r => String(r['지역']||'').trim()).filter(Boolean)
+          )].sort();
+        return regs.map((reg,i) => ({
+          label: reg, color: TREND_COLORS[i % TREND_COLORS.length],
+          rows: _allRows.filter(r => {
+            const amt = parseFloat(r['금액'])||0;
+            if (amt<=0 || !['지방','수도권'].includes((r['구분']||'').trim())) return false;
+            const rd = parseDate(r['급식일']);
+            if (rd && checkedMonths && !checkedMonths.has(rd.slice(0,7))) return false;
+            if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+            return String(r['지역']||'').trim() === reg;
+          })
+        }));
+      }
+      case 'area': {
+        const areas = f.area.length > 0 ? f.area :
+          [...new Set(_allRows
+            .filter(r => {
+              if (!['지방','수도권'].includes((r['구분']||'').trim())) return false;
+              if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+              return true;
+            })
+            .map(r => BUILTIN_REGION[String(r['지역']||'').trim()]).filter(Boolean)
+          )].sort();
+        return areas.map((a,i) => ({
+          label: a, color: TREND_COLORS[i % TREND_COLORS.length],
+          rows: _allRows.filter(r => {
+            const amt = parseFloat(r['금액'])||0;
+            if (amt<=0 || !['지방','수도권'].includes((r['구분']||'').trim())) return false;
+            const rd = parseDate(r['급식일']);
+            if (rd && checkedMonths && !checkedMonths.has(rd.slice(0,7))) return false;
+            if (f.person.length && !f.person.includes(String(r['담당자']||'').trim())) return false;
+            return BUILTIN_REGION[String(r['지역']||'').trim()] === a;
+          })
+        }));
+      }
+      default: // person
+        return f.person.length > 0
+          ? f.person.map((p,i) => ({ label:p, rows:getRows(p), color:TREND_COLORS[i%TREND_COLORS.length] }))
+          : [{ label:'전체 매출', rows:getRows(null), color:TREND_COLORS[0] }];
+    }
+  }
+  const lines = getBasisItems();
 
   // 라인별 데이터 집계
   const datasets = lines.map((line, lineIdx) => {
@@ -2493,6 +2597,55 @@ function renderTrendChart() {
     return;
   }
 
+  // 주간일 때 라벨 수에 따라 차트 너비 동적 조정
+  const inner = document.getElementById('trend-chart-inner');
+  if (_trendUnit === 'weekly' && allLabels.length > 8) {
+    inner.style.width = Math.max(allLabels.length * 90, 800) + 'px';
+  } else {
+    inner.style.width = '100%';
+  }
+
+  // 월 구분 플러그인 (주간 모드)
+  const monthDividerPlugin = {
+    id: 'monthDivider',
+    afterDraw(chart) {
+      if (_trendUnit !== 'weekly') return;
+      const ctx3 = chart.ctx;
+      const xAxis = chart.scales.x;
+      const yAxis = chart.scales.y;
+      let lastMonth = null;
+      allLabels.forEach((lbl, i) => {
+        const m = lbl.match(/^(\d+)월/);
+        if (!m) return;
+        const mo = m[1];
+        if (mo !== lastMonth) {
+          if (lastMonth !== null && i > 0) {
+            const x = xAxis.getPixelForValue(i - 0.5);
+            ctx3.save();
+            ctx3.beginPath();
+            ctx3.strokeStyle = 'rgba(100,100,100,0.25)';
+            ctx3.lineWidth = 1.5;
+            ctx3.setLineDash([4, 3]);
+            ctx3.moveTo(x, yAxis.top);
+            ctx3.lineTo(x, yAxis.bottom);
+            ctx3.stroke();
+            ctx3.restore();
+          }
+          // 월 레이블
+          if (i < allLabels.length) {
+            const x = xAxis.getPixelForValue(i);
+            ctx3.save();
+            ctx3.font = 'bold 11px sans-serif';
+            ctx3.fillStyle = 'rgba(100,100,100,0.6)';
+            ctx3.fillText(mo + '월', x, yAxis.top - 6);
+            ctx3.restore();
+          }
+          lastMonth = mo;
+        }
+      });
+    }
+  };
+
   _trendChart = new Chart(canvas, {
     type: 'line',
     data: { labels: allLabels, datasets },
@@ -2524,7 +2677,7 @@ function renderTrendChart() {
         }
       }
     },
-    plugins: [{
+    plugins: [monthDividerPlugin, {
       id: 'trendLabels',
       afterDatasetsDraw(chart) {
         const showLabels = document.getElementById('trend-show-labels')?.checked !== false;
@@ -2636,6 +2789,126 @@ function trendSelectProduct(val) {
 // GitHub holidays.json 저장
 
 
+
+
+// ───────────────────────────────────────────────
+// 엑셀 내보내기 유틸
+// ───────────────────────────────────────────────
+function tableToExcel(tableId, sheetName, filename) {
+  const table = document.getElementById(tableId);
+  if (!table) { showToast('표를 찾을 수 없습니다'); return; }
+
+  const wb = XLSX.utils.book_new();
+  // 셀 분리: 줄바꿈(
+) 포함 셀 → 첫번째 값만, 나머지는 다음 컬럼
+  const rows = [];
+  table.querySelectorAll('tr').forEach(tr => {
+    const row = [];
+    tr.querySelectorAll('th, td').forEach(td => {
+      // innerHTML에서 순수 텍스트만 추출 (배지 등 제거)
+      const raw = td.innerText || td.textContent || '';
+      const parts = raw.trim().split('\n').map(s=>s.trim()).filter(Boolean);
+      if (parts.length <= 1) {
+        row.push(raw.trim());
+      } else {
+        // 여러 줄 → 각각 컬럼으로
+        parts.forEach(p => row.push(p));
+      }
+    });
+    rows.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename);
+  showToast('✅ 엑셀 다운로드 완료');
+}
+
+function exportOverviewExcel() {
+  const wb = XLSX.utils.book_new();
+  const d = _analyzedCurrent;
+  if (!d) return;
+
+  // 담당자×주차 매출표
+  const personRows = [['#','담당자',...d.weeks,'합계','비중%']];
+  const grandTotal = d.weeks.reduce((s,w)=>s+d.weeks.reduce((ss,ww)=>ss+(d.byPersonWeek[d.persons[0]]?.[ww]||0),0),0);
+  const gt = d.persons.reduce((s,p)=>s+d.weeks.reduce((ss,w)=>ss+(d.byPersonWeek[p]?.[w]||0),0),0);
+  d.persons.forEach((p,i) => {
+    const rt = d.weeks.reduce((s,w)=>s+(d.byPersonWeek[p]?.[w]||0),0);
+    const row = [i+1, p, ...d.weeks.map(w=>d.byPersonWeek[p]?.[w]||0), rt, gt?(rt/gt*100).toFixed(1)+'%':''];
+    personRows.push(row);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(personRows);
+  XLSX.utils.book_append_sheet(wb, ws1, '담당자별매출');
+
+  // 제품 TOP10
+  const prodRows = [['순위','제품명','금액','비중%','배식학교수']];
+  d.top10.forEach((p,i) => prodRows.push([i+1, p.name, p.amt, d.total?(p.amt/d.total*100).toFixed(1)+'%':'', p.schoolCount||0]));
+  const ws2 = XLSX.utils.aoa_to_sheet(prodRows);
+  XLSX.utils.book_append_sheet(wb, ws2, '제품TOP10');
+
+  // 학교 TOP10
+  const schoolRows = [['순위','학교명','담당자','권역','금액','비중%']];
+  d.topSchools.forEach((s,i) => {
+    const topP = s.persons?Object.entries(s.persons).sort((a,b)=>b[1]-a[1])[0]:null;
+    schoolRows.push([i+1, s.name, topP?topP[0]:'', s.kwon||'', s.total, d.total?(s.total/d.total*100).toFixed(1)+'%':'']);
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet(schoolRows);
+  XLSX.utils.book_append_sheet(wb, ws3, '학교TOP10');
+
+  XLSX.writeFile(wb, '웰프렌_총괄_' + (d.period||'').replace('~','to') + '.xlsx');
+  showToast('✅ 총괄 엑셀 다운로드');
+}
+
+function exportCategoryExcel() {
+  const d = _analyzedCurrent;
+  if (!d) return;
+  const wb = XLSX.utils.book_new();
+
+  const cats = Object.keys(d.byCatPerson).filter(c=>d.byCatPerson[c]);
+  const persons = [...new Set(cats.flatMap(c=>Object.keys(d.byCatPerson[c])))].sort();
+  const rows = [['카테고리', ...persons, '합계', '배식학교수']];
+  cats.forEach(cat => {
+    const total = Object.values(d.byCatPerson[cat]).reduce((s,v)=>s+v,0);
+    const schoolCnt = d.byCat[cat]?.schools?.size || 0;
+    rows.push([cat, ...persons.map(p=>d.byCatPerson[cat][p]||0), total, schoolCnt]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, '카테고리별매출');
+  XLSX.writeFile(wb, '웰프렌_카테고리_' + (d.period||'').replace('~','to') + '.xlsx');
+  showToast('✅ 카테고리 엑셀 다운로드');
+}
+
+function exportDeepExcel() {
+  if (!_deepRows || !_deepRows.length) return;
+  const rows = [['지역','담당자','권역','매출','침투율%','초침투율%','중침투율%','고침투율%','학생1인당','학생수']];
+  _deepRows.forEach(r => {
+    rows.push([
+      r.dist, r.info.person, r.info.kwon,
+      r.deep.total, r.penetration.toFixed(1)+'%',
+      r.typeRows[0]?.pct+'%'||'', r.typeRows[1]?.pct+'%'||'', r.typeRows[2]?.pct+'%'||'',
+      r.perStudent, r.info.students
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, '지역별심화분석');
+  XLSX.writeFile(wb, '웰프렌_지역별심화분석.xlsx');
+  showToast('✅ 지역별 심화분석 엑셀 다운로드');
+}
+
+function exportCompareExcel() {
+  if (!window._compareData) return;
+  const rows = [['#','담당자','A기간 매출','B기간 매출','증감','증감률%']];
+  window._compareData.forEach((r,i) => {
+    rows.push([i+1, r.p, r.av, r.bv, r.diff, r.pct.toFixed(1)+'%']);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, '기간비교');
+  XLSX.writeFile(wb, '웰프렌_기간비교.xlsx');
+  showToast('✅ 기간비교 엑셀 다운로드');
+}
 
 // ───────────────────────────────────────────────
 // 공휴일 관리
