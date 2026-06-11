@@ -257,7 +257,6 @@ tbody tr:last-child td { border-bottom: none; }
   <div class="header-right">
     <span id="period-label">데이터 없음</span>
     <button class="btn btn-ghost" id="cat-editor-btn" onclick="toggleCatEditor()" style="display:none">⚙ 카테고리 관리</button>
-    <button class="btn btn-ghost" id="holiday-btn" onclick="toggleHolidayEditor()" style="display:none">📅 공휴일 관리</button>
     <button class="btn btn-ghost" id="export-btn" onclick="exportPNG()" style="display:none">📷 PNG 저장</button>
     <button class="btn btn-danger" id="reset-btn" onclick="resetAll()" style="display:none">↺ 초기화</button>
   </div>
@@ -463,23 +462,15 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="table-outer" id="goal-bars"></div>
   </div>
 
-<!-- 공휴일 관리 모달 -->
+<!-- 공휴일 목록 모달 (보기 전용) -->
 <div id="holiday-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border-radius:14px;padding:28px;width:480px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+  <div style="background:var(--surface);border-radius:14px;padding:28px;width:400px;max-height:70vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <div style="font-size:16px;font-weight:800">📅 공휴일 관리</div>
+      <div style="font-size:16px;font-weight:800">📅 공휴일 목록</div>
       <button onclick="toggleHolidayEditor()" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--text2)">✕</button>
     </div>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">2026년 공휴일 목록입니다. 대체공휴일·임시공휴일을 추가/삭제할 수 있습니다.</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px">
-      <input type="date" id="holiday-add-input" class="gf-input" style="flex:1">
-      <button class="btn btn-primary" onclick="addHoliday()" style="padding:6px 14px;font-size:12px">+ 추가</button>
-    </div>
-    <div id="holiday-list" style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-ghost" onclick="resetHolidays()" style="font-size:12px">기본값으로 초기화</button>
-      <button class="btn btn-primary" onclick="saveHolidays()" style="font-size:12px;margin-left:auto">💾 저장</button>
-    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">영업일 계산에 적용되는 공휴일 목록입니다. (GitHub에서 중앙 관리)</div>
+    <div id="holiday-list" style="max-height:380px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
   </div>
 </div>
 
@@ -615,7 +606,7 @@ const GITHUB_HOLIDAYS_URL = 'https://gemiso-jtoh.github.io/welfren-catmap/holida
 
 async function fetchLatestHolidays() {
   try {
-    const res = await fetch(GITHUB_HOLIDAYS_URL + '?t=' + Date.now());
+    const res = await fetch(GITHUB_HOLIDAYS_URL + '?t=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) throw new Error('fetch 실패');
     const remote = await res.json();
     if (Array.isArray(remote) && remote.length > 0) {
@@ -632,7 +623,7 @@ async function fetchLatestHolidays() {
 async function fetchLatestCatMap() {
   for (const url of [GITHUB_CATMAP_URL]) {
     try {
-      const res = await fetch(url + '?t=' + Date.now());
+      const res = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
       if (!res.ok) continue;
       const remote = await res.json();
       const added = Object.keys(remote).filter(k => !catMap[k]).length;
@@ -1200,7 +1191,7 @@ function render() {
   document.getElementById('reset-btn').style.display = 'inline-flex';
   document.getElementById('cat-editor-btn').style.display = 'inline-flex';
   document.getElementById('export-btn').style.display = 'inline-flex';
-  document.getElementById('holiday-btn').style.display = 'inline-flex';
+
   document.getElementById('btn-goal').style.display = 'inline-flex';
   document.getElementById('btn-trend').style.display = 'inline-flex';
   document.getElementById('btn-compare').style.display = 'inline-flex';
@@ -2622,48 +2613,8 @@ function trendSelectProduct(val) {
 
 
 // GitHub holidays.json 저장
-const GITHUB_TOKEN = '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'; // ← 여기에 토큰 입력
-const GITHUB_REPO  = 'gemiso-jtoh/welfren-catmap';
-const GITHUB_HFILE = 'holidays.json';
 
-async function saveHolidaysToGithub() {
-  if (!GITHUB_TOKEN || GITHUB_TOKEN === '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') {
-    showToast('⚠ 토큰을 설정해주세요');
-    return false;
-  }
-  try {
-    // 현재 파일 SHA 가져오기 (업데이트에 필요)
-    const getRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_HFILE}`,
-      { headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json' } }
-    );
-    const getJson = await getRes.json();
-    const sha = getJson.sha;
 
-    // 파일 업데이트
-    const content = JSON.stringify([..._holidays].sort(), null, 2);
-    const encoded = btoa(unescape(encodeURIComponent(content)));
-    const putRes = await fetch(
-      `https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_HFILE}`,
-      {
-        method: 'PUT',
-        headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: '공휴일 업데이트 (대시보드)', content: encoded, sha })
-      }
-    );
-    if (putRes.ok) {
-      showToast('✅ GitHub holidays.json 저장 완료 - 모든 사용자에게 반영됩니다');
-      return true;
-    } else {
-      const err = await putRes.json();
-      showToast('❌ 저장 실패: ' + (err.message||''));
-      return false;
-    }
-  } catch(e) {
-    showToast('❌ 오류: ' + e.message);
-    return false;
-  }
-}
 
 // ───────────────────────────────────────────────
 // 공휴일 관리
@@ -2728,46 +2679,17 @@ function toggleHolidayEditor() {
 }
 function renderHolidayList() {
   const sorted = [..._holidays].sort();
-  const NAMES = {
-    "2026-01-01":"신정","2026-01-28":"설날 연휴","2026-01-29":"설날","2026-01-30":"설날 연휴",
-    "2026-03-01":"삼일절","2026-03-02":"대체공휴일(삼일절)","2026-05-05":"어린이날",
-    "2026-05-25":"부처님오신날","2026-06-06":"현충일","2026-08-15":"광복절",
-    "2026-08-17":"대체공휴일(광복절)","2026-09-24":"추석 연휴","2026-09-25":"추석",
-    "2026-09-26":"추석 연휴","2026-09-28":"대체공휴일(추석)","2026-10-03":"개천절",
-    "2026-10-05":"대체공휴일(개천절)","2026-10-09":"한글날","2026-12-25":"크리스마스"
-  };
   document.getElementById('holiday-list').innerHTML = sorted.map(d =>
-    `<div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);gap:10px">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);width:90px">${d}</span>
-      <span style="flex:1;font-size:13px">${NAMES[d]||'임시공휴일'}</span>
-      <button onclick="removeHoliday('${d}')" style="border:none;background:rgba(224,36,36,0.1);color:var(--red);border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer">삭제</button>
+    `<div style="display:flex;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);gap:10px">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2);width:90px;flex-shrink:0">${d}</span>
+      <span style="font-size:13px;color:var(--text)">${d}</span>
     </div>`
-  ).join('');
+  ).join('') + `<div style="padding:10px 14px;font-size:12px;color:var(--text3);text-align:center">총 ${sorted.length}개 · GitHub에서 관리됩니다</div>`;
 }
-function addHoliday() {
-  const val = document.getElementById('holiday-add-input').value;
-  if (!val) { showToast('⚠ 날짜를 선택하세요'); return; }
-  _holidays.add(val);
-  renderHolidayList();
-  showToast(`✅ ${val} 추가됨`);
-}
-function removeHoliday(d) {
-  _holidays.delete(d);
-  renderHolidayList();
-}
-function resetHolidays() {
-  _holidays = new Set(BUILTIN_HOLIDAYS_2026);
-  renderHolidayList();
-  showToast('✅ 기본값으로 초기화됨');
-}
-async function saveHolidays() {
-  showToast('⏳ GitHub에 저장 중...');
-  const ok = await saveHolidaysToGithub();
-  if (ok) {
-    toggleHolidayEditor();
-    reanalyze();
-  }
-}
+
+
+
+
 
 // ───────────────────────────────────────────────
 // 글로벌 기간 필터
@@ -3005,7 +2927,6 @@ function resetAll() {
   document.getElementById('reset-btn').style.display = 'none';
   document.getElementById('cat-editor-btn').style.display = 'none';
   document.getElementById('export-btn').style.display = 'none';
-  document.getElementById('holiday-btn').style.display = 'none';
   document.getElementById('global-filter').classList.remove('visible');
   _gfStart = null; _gfEnd = null;
   document.getElementById('period-label').textContent = '데이터 없음';
