@@ -248,6 +248,18 @@ tbody tr:last-child td { border-bottom: none; }
 .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
 .preset-btn.active { background: rgba(26,86,219,0.1); border-color: var(--accent); color: var(--accent); }
 .compare-period-label { font-family: 'JetBrains Mono',monospace; font-size: 11px; color: var(--text2); background: var(--surface3); padding: 3px 8px; border-radius: 4px; }
+
+/* ── 클래식 표 스타일 ── */
+.classic-table { width:100%; border-collapse:collapse; font-family:'Pretendard',sans-serif; background:#fff; font-size:13px; }
+.classic-table th { background:#f2f2f2; border:1px solid #999; padding:7px 10px; text-align:center; font-weight:700; color:#111; white-space:nowrap; }
+.classic-table td { border:1px solid #bbb; padding:6px 10px; text-align:right; color:#222; white-space:nowrap; }
+.classic-table td.left { text-align:left; }
+.classic-table td.center { text-align:center; }
+.classic-table tr.total-classic td { background:#fff59d; font-weight:800; border-top:2px solid #888; }
+.classic-table tr.other-classic td { background:#f5f5f5; color:#666; }
+.classic-table .rank-classic { font-weight:800; color:#333; text-align:center; width:32px; }
+.toggle-view-btn { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:4px 10px; border-radius:5px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); cursor:pointer; font-family:'Pretendard',sans-serif; transition:all 0.15s; }
+.toggle-view-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -341,7 +353,12 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="kpi-card c-teal"><div class="kpi-label">총 배식수</div><div class="kpi-value" id="kpi-meals">—</div><div class="kpi-sub" id="kpi-meals-sub">—</div></div>
     </div>
 
-    <div class="sec-title">주차별 요약</div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">주차별 요약
+      <div style="display:flex;gap:4px">
+        <button class="toggle-view-btn active" id="week-btn-graph" onclick="toggleWeekView('graph')">📊 그래프</button>
+        <button class="toggle-view-btn" id="week-btn-table" onclick="toggleWeekView('table')">📋 표</button>
+      </div>
+    </div>
     <div class="week-list" id="week-cards"></div>
 
     <div class="sec-title">주차별 매출 추이</div>
@@ -352,7 +369,12 @@ tbody tr:last-child td { border-bottom: none; }
       </div>
     </div>
 
-    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">담당자별 × 주차별 매출<button onclick="exportOverviewExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div>
+    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">담당자별 × 주차별 매출
+      <div style="display:flex;gap:4px;align-items:center">
+        <button class="toggle-view-btn active" id="person-btn-graph" onclick="togglePersonView('graph')">📊 그래프</button>
+        <button class="toggle-view-btn" id="person-btn-table" onclick="togglePersonView('table')">📋 표</button>
+        <button onclick="exportOverviewExcel()" style="font-size:11px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-family:Pretendard,sans-serif">📥 엑셀</button></div></div>
+    <div id="person-graph-wrap">
     <div class="table-outer"><div class="table-wrap"><table id="person-table"><thead id="person-thead"></thead><tbody id="person-tbody"></tbody></table></div></div>
 
     <div class="sec-title">매출 TOP 10 제품</div>
@@ -3014,6 +3036,170 @@ function exportCompareExcel() {
   XLSX.utils.book_append_sheet(wb, ws, '기간비교');
   XLSX.writeFile(wb, '웰프렌_기간비교.xlsx');
   showToast('✅ 기간비교 엑셀 다운로드');
+}
+
+
+// ───────────────────────────────────────────────
+// 표/그래프 토글
+// ───────────────────────────────────────────────
+let _viewMode = { week:'graph', prod:'graph', school:'graph', person:'graph' };
+
+function toggleWeekView(mode) {
+  _viewMode.week = mode;
+  document.getElementById('week-btn-graph').classList.toggle('active', mode==='graph');
+  document.getElementById('week-btn-table').classList.toggle('active', mode==='table');
+  renderWeekCards(_analyzedCurrent);
+}
+function toggleProdView(mode) {
+  _viewMode.prod = mode;
+  document.getElementById('prod-btn-graph').classList.toggle('active', mode==='graph');
+  document.getElementById('prod-btn-table').classList.toggle('active', mode==='table');
+  renderTop10Products(_analyzedCurrent);
+}
+function toggleSchoolView(mode) {
+  _viewMode.school = mode;
+  document.getElementById('school-btn-graph').classList.toggle('active', mode==='graph');
+  document.getElementById('school-btn-table').classList.toggle('active', mode==='table');
+  renderTopSchools(_analyzedCurrent);
+}
+function togglePersonView(mode) {
+  _viewMode.person = mode;
+  document.getElementById('person-btn-graph').classList.toggle('active', mode==='graph');
+  document.getElementById('person-btn-table').classList.toggle('active', mode==='table');
+  renderPersonTable(_analyzedCurrent);
+}
+
+// ── 클래식 표: 주차별 요약 ──
+function renderWeekClassic(d) {
+  if (!d) return '';
+  const { weeks, byWeek } = d;
+  const grandTotal = weeks.reduce((s,w)=>s+byWeek[w].total,0);
+  const rows = weeks.map((w,i)=>{
+    const dd = byWeek[w];
+    const pct = grandTotal?(dd.total/grandTotal*100).toFixed(1):0;
+    const bizDays = (dd.minDate&&dd.maxDate)?countBizDays(dd.minDate,dd.maxDate):0;
+    const daily = bizDays>0?Math.round(dd.total/bizDays):0;
+    return `<tr>
+      <td class="left" style="font-weight:700;color:${WEEK_COLORS[i%WEEK_COLORS.length]}">${w}</td>
+      <td>${fmt(dd.total)}원</td>
+      <td>${pct}%</td>
+      <td>${bizDays}일</td>
+      <td>${fmt(daily)}원</td>
+      <td>${dd.schoolCount.toLocaleString()}개교</td>
+    </tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table class="classic-table">
+    <thead><tr>
+      <th>주차</th><th>총 매출</th><th>비중%</th><th>배식일</th><th>일평균</th><th>납품학교</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr class="total-classic">
+      <td class="left" style="font-weight:800">합계</td>
+      <td>${fmt(grandTotal)}원</td>
+      <td>100%</td>
+      <td>—</td><td>—</td>
+      <td>${d.schools.toLocaleString()}개교</td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
+// ── 클래식 표: 제품 TOP10 ──
+function renderProdClassic(d) {
+  if (!d) return '';
+  const rows = d.top10.map((p,i)=>`<tr>
+    <td class="rank-classic">${i+1}</td>
+    <td class="left">${p.name}</td>
+    <td>${fmt(p.amt)}원</td>
+    <td>${d.total?(p.amt/d.total*100).toFixed(1):0}%</td>
+    <td class="center">${p.schoolCount||0}개교</td>
+  </tr>`).join('');
+  const otherRow = d.top10Other&&d.top10Other.count>0?`<tr class="other-classic">
+    <td class="center">기타</td>
+    <td class="left">기타 ${d.top10Other.count}개 제품</td>
+    <td>${fmt(d.top10Other.total)}원</td>
+    <td>${d.total?(d.top10Other.total/d.total*100).toFixed(1):0}%</td>
+    <td>—</td>
+  </tr>`:'';
+  const topTotal = d.top10.reduce((s,p)=>s+p.amt,0)+(d.top10Other?.total||0);
+  return `<div style="overflow-x:auto"><table class="classic-table">
+    <thead><tr><th>순위</th><th>제품명</th><th>금액</th><th>비중%</th><th>배식학교</th></tr></thead>
+    <tbody>${rows}${otherRow}</tbody>
+    <tfoot><tr class="total-classic">
+      <td></td><td class="left" style="font-weight:800">합계</td>
+      <td>${fmt(topTotal)}원</td><td>100%</td><td>—</td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
+// ── 클래식 표: 학교 TOP10 ──
+function renderSchoolClassic(d) {
+  if (!d) return '';
+  const rows = d.topSchools.map((s,i)=>{
+    const topP = s.persons?Object.entries(s.persons).sort((a,b)=>b[1]-a[1])[0]:null;
+    return `<tr>
+      <td class="rank-classic">${i+1}</td>
+      <td class="left">${s.name}</td>
+      <td class="center">${topP?topP[0]:''}</td>
+      <td class="center">${s.kwon||''}</td>
+      <td>${fmt(s.total)}원</td>
+      <td>${d.total?(s.total/d.total*100).toFixed(1):0}%</td>
+    </tr>`;
+  }).join('');
+  const otherRow = d.topSchoolsOther&&d.topSchoolsOther.count>0?`<tr class="other-classic">
+    <td class="center">기타</td>
+    <td class="left">기타 ${d.topSchoolsOther.count}개교</td>
+    <td>—</td><td>—</td>
+    <td>${fmt(d.topSchoolsOther.total)}원</td>
+    <td>${d.total?(d.topSchoolsOther.total/d.total*100).toFixed(1):0}%</td>
+  </tr>`:'';
+  return `<div style="overflow-x:auto"><table class="classic-table">
+    <thead><tr><th>순위</th><th>학교명</th><th>담당자</th><th>권역</th><th>금액</th><th>비중%</th></tr></thead>
+    <tbody>${rows}${otherRow}</tbody>
+  </table></div>`;
+}
+
+// ── 클래식 표: 담당자×주차 ──
+function renderPersonClassic(d) {
+  if (!d) return '';
+  const { weeks, byPersonWeek, persons } = d;
+  const weekTotals = {};
+  weeks.forEach(w => weekTotals[w]=persons.reduce((s,p)=>s+(byPersonWeek[p]?.[w]||0),0));
+  const grandTotal = weeks.reduce((s,w)=>s+weekTotals[w],0);
+
+  // 주차 헤더 컬러
+  const thWeeks = weeks.map((w,i)=>`<th style="color:${WEEK_COLORS[i%WEEK_COLORS.length]};background:#f9f9f9">${w}<br><span style="font-weight:400;font-size:11px">${grandTotal?(weekTotals[w]/grandTotal*100).toFixed(1):0}%</span></th>`).join('');
+
+  const rows = persons.map((p,pi)=>{
+    const rt = weeks.reduce((s,w)=>s+(byPersonWeek[p]?.[w]||0),0);
+    const pct = grandTotal?(rt/grandTotal*100).toFixed(0):0;
+    const cells = weeks.map(w=>`<td>${fmt(byPersonWeek[p]?.[w]||0)}</td>`).join('');
+    return `<tr>
+      <td class="rank-classic">${pi+1}</td>
+      <td class="left" style="font-weight:700">${p.replace(/\((수도권|지방|세종)\)/g,'<span style="font-size:10px;color:#888;font-weight:400">($1)</span>')}</td>
+      ${cells}
+      <td style="font-weight:800">${fmt(rt)}</td>
+      <td style="font-weight:800;color:var(--accent)">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  const totalCells = weeks.map(w=>`<td style="font-weight:800">${fmt(weekTotals[w])}</td>`).join('');
+
+  return `<div style="overflow-x:auto"><table class="classic-table">
+    <thead>
+      <tr>
+        <th>no</th><th>담당자</th>${thWeeks}<th>합계</th><th>%</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr class="total-classic">
+        <td></td><td class="left" style="font-weight:800">합계</td>
+        ${totalCells}
+        <td style="font-weight:800">${fmt(grandTotal)}</td>
+        <td style="font-weight:800">100%</td>
+      </tr>
+    </tfoot>
+  </table></div>`;
 }
 
 // ───────────────────────────────────────────────
