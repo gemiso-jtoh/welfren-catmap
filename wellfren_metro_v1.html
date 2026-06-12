@@ -381,21 +381,30 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="table-outer"><div class="table-wrap"><table id="person-table"><thead id="person-thead"></thead><tbody id="person-tbody"></tbody></table></div></div>
     </div>
 
-    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">매출 TOP 10 제품
-      <div style="display:flex;gap:4px">
-        <button class="toggle-view-btn active" id="prod-btn-graph" onclick="toggleProdView('graph')">📊 그래프</button>
-        <button class="toggle-view-btn" id="prod-btn-table" onclick="toggleProdView('table')">📋 표</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+      <!-- 매출 TOP10 -->
+      <div>
+        <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">매출 TOP 10 제품
+          <div style="display:flex;gap:4px">
+            <button class="toggle-view-btn active" id="prod-btn-graph" onclick="toggleProdView('graph')">📊 그래프</button>
+            <button class="toggle-view-btn" id="prod-btn-table" onclick="toggleProdView('table')">📋 표</button>
+          </div>
+        </div>
+        <div id="top-products-wrap"><div class="table-outer"><div class="product-list" id="top-products"></div></div></div>
+      </div>
+      <!-- 납품 TOP10 -->
+      <div>
+        <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">납품 TOP 10 학교
+          <div style="display:flex;gap:4px">
+            <button class="toggle-view-btn active" id="school-btn-graph" onclick="toggleSchoolView('graph')">📊 그래프</button>
+            <button class="toggle-view-btn" id="school-btn-table" onclick="toggleSchoolView('table')">📋 표</button>
+          </div>
+        </div>
+        <div id="top-schools-wrap"><div class="table-outer"><div class="product-list" id="top-schools"></div></div></div>
       </div>
     </div>
-    <div id="top-products-wrap"><div class="table-outer"><div class="product-list" id="top-products"></div></div></div>
 
-    <div class="sec-title" style="display:flex;align-items:center;justify-content:space-between">납품 TOP 10 학교
-      <div style="display:flex;gap:4px">
-        <button class="toggle-view-btn active" id="school-btn-graph" onclick="toggleSchoolView('graph')">📊 그래프</button>
-        <button class="toggle-view-btn" id="school-btn-table" onclick="toggleSchoolView('table')">📋 표</button>
-      </div>
-    </div>
-    <div id="top-schools-wrap"><div class="table-outer"><div class="product-list" id="top-schools"></div></div></div>
+  </div><!-- /tab-overview -->
 
   <!-- ===== 지역별 탭 ===== -->
   <div class="section-panel" id="tab-region">
